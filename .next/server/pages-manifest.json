@@ -4,14 +4,9 @@
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
   "/login": "pages/login.js",
-  "/api/categories": "pages/api/categories.js",
   "/register": "pages/register.js",
+  "/api/categories": "pages/api/categories.js",
   "/api/auth/login": "pages/api/auth/login.js",
-  "/api/auth/register": "pages/api/auth/register.js",
-  "/api/products": "pages/api/products.js",
   "/admin": "pages/admin.js",
-  "/api/products/byCategory": "pages/api/products/byCategory.js",
-  "/categories/[category]": "pages/categories/[category].js",
-  "/categories/[category]/[product]": "pages/categories/[category]/[product].js",
-  "/api/products/[product]": "pages/api/products/[product].js"
+  "/api/products": "pages/api/products.js"
 }

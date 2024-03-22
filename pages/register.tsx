@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
@@ -61,11 +62,12 @@ const RegisterPage = () => {
           />
         </div>
         {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
-        <div className="mt-6">
+        <div className="mt-6 mb-4">
           <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             Register
           </button>
         </div>
+        <Link legacyBehavior href="/login" ><a className='text-gray-700 text-md text-center'>Already have an account?</a></Link>
       </form>
     </div>
   );
