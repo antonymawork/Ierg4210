@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { GetServerSideProps } from 'next';
+import { parseCookies } from 'nookies';
+import jwt from 'jsonwebtoken';
 import Header from '../../components/admin/Header';
 import Sidebar from '../../components/admin/Sidebar';
 import Products from './products';
@@ -20,3 +23,45 @@ export default function Admin() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const cookies = parseCookies(ctx);
+  const token = cookies.auth;
+
+  // User not logged in scenario
+  if (!token) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+
+  try {
+    // Decoding the token to check if the user is an admin
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const isAdmin = decoded ? decoded.isAdmin : false;
+
+    // User is not an admin scenario
+    if (!isAdmin) {
+      return {
+        redirect: {
+          destination: '/',
+          permanent: false,
+        },
+      };
+    }
+
+    // User is an admin and logged in
+    return { props: {} };
+  } catch (error) {
+    // Error with token or not logged in leads to login page
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+};

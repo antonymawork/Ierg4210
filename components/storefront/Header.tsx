@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
 import React, { useState, useEffect } from 'react';
 
-const Header = () => {
+const Header = ({user}) => {
   const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
@@ -66,11 +66,15 @@ const Header = () => {
               <button className="transition hover:scale-105 mt-2 bg-slate-700 text-white p-2 font-bold rounded-lg">Check Out</button>
             </div>
           </div>
-        <Link href="/admin" legacyBehavior>
-          <button className="ml-4 transition hover:scale-105 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded">
-            Log in
-          </button>
-        </Link>
+          {!user ? (
+          <Link href="/login" legacyBehavior>
+            <a className="ml-4 transition hover:scale-105 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded">Log in</a>
+          </Link>
+        ) : user.isAdmin ? (
+          <span>Welcome, Admin {user.username}</span>
+        ) : (
+          <span>Welcome, {user.username}</span>
+        )}
       </div>
     </header>
   );
