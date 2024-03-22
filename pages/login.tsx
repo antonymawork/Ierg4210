@@ -1,28 +1,35 @@
 // pages/login.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { GetServerSideProps } from 'next';
+import { useRouter } from 'next/router';
 import { parseCookies } from 'nookies';
 import jwt from 'jsonwebtoken';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [csrfToken, setCsrfToken] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
+  useEffect(() => {
+    // Fetch the CSRF token
+    const fetchCsrfToken = async () => {
+      const response = await axios.get('/api/csrf-token');
+      setCsrfToken(response.data.csrfToken);
+    };
+    fetchCsrfToken();
+  }, []);
+
   const handleLogin = async (event) => {
     event.preventDefault();
-    setErrorMsg(''); // Clear previous error messages
+    setErrorMsg('');
 
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await axios.post('/api/auth/login', { email, password, csrfToken });
       const { token, isAdmin } = response.data;
 
-      // Normally, you should set the cookie on the server side in your API response
-      // Redirect based on user role
       if (isAdmin) {
         router.push('/admin');
       } else {
@@ -37,6 +44,7 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <form onSubmit={handleLogin} className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
         <h2 className="text-2xl font-semibold text-center text-gray-700 mb-8">Log In</h2>
+        <input type="hidden" name="csrfToken" value={csrfToken} />
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email:</label>
           <input

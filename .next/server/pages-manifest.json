@@ -2,11 +2,16 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
   "/login": "pages/login.js",
-  "/register": "pages/register.js",
-  "/api/categories": "pages/api/categories.js",
-  "/api/auth/login": "pages/api/auth/login.js",
+  "/api/csrf-token": "pages/api/csrf-token.js",
   "/admin": "pages/admin.js",
-  "/api/products": "pages/api/products.js"
+  "/api/categories": "pages/api/categories.js",
+  "/api/products": "pages/api/products.js",
+  "/api/auth/login": "pages/api/auth/login.js",
+  "/": "pages/index.js",
+  "/api/products/byCategory": "pages/api/products/byCategory.js",
+  "/api/auth/logout": "pages/api/auth/logout.js",
+  "/categories/[category]": "pages/categories/[category].js",
+  "/categories/[category]/[product]": "pages/categories/[category]/[product].js",
+  "/api/products/[product]": "pages/api/products/[product].js"
 }

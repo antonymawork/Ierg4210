@@ -18,6 +18,7 @@
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.6.0",
+    "csurf": "^1.11.0",
     "formidable": "^3.5.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
@@ -28,7 +29,8 @@
     "sharp": "^0.33.2",
     "tailwindcss-filters": "^3.0.0",
     "trace": "^3.1.1",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.7",

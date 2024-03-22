@@ -32,15 +32,20 @@
       "static/chunks/main.js",
       "static/chunks/pages/admin.js"
     ],
+    "/categories/[category]": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/categories/[category].js"
+    ],
+    "/categories/[category]/[product]": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/categories/[category]/[product].js"
+    ],
     "/login": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/login.js"
-    ],
-    "/register": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/register.js"
     ]
   },
   "ampFirstPages": []
