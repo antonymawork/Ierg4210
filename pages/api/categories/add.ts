@@ -3,6 +3,7 @@ import multer, { Multer } from 'multer';
 import { PrismaClient } from '@prisma/client';
 import { slugify } from '../../../lib/slugify'; // Ensure you have slugify installed: npm install slugify
 import path from 'path';
+import { parseCookies } from 'nookies';
 
 const prisma = new PrismaClient();
 
@@ -36,8 +37,12 @@ export const config = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'POST') {
+        const { csrfToken } = parseCookies({ req });
         uploadMiddleware(req, res, async (error: any) => {
-            console.log(req.body)
+            // console.log(req.body)
+            if (!req.body.csrfToken || req.body.csrfToken !== csrfToken) {
+                return res.status(403).json({ message: 'Invalid CSRF token' });
+            }
             if (error) {
                 console.log(error)
                 return res.status(500).json({ message: `File upload error: ${error.message}` });

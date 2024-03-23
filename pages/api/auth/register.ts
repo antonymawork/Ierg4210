@@ -1,18 +1,37 @@
 // pages/api/auth/register.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
-import prisma from '../../../lib/prismaClient'; // Adjust the import path as necessary
+import prisma from '../../../lib/prismaClient';
+import { parse } from 'cookie';
+import validator from 'validator';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
-    const { email, username, password } = req.body; // Include username in the destructuring
+    const { email, username, password, csrfToken } = req.body;
+    const cookies = parse(req.headers.cookie || '');
+    const sessionCsrfToken = cookies.csrfToken;
 
-    // Basic validation for email and password
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
+    // Server-side input validations
+    if (!email || !password || !username) {
+        return res.status(400).json({ message: 'Email, username, and password are required' });
+    }
+
+    // Validate email format
+    if (!validator.isEmail(email)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    // Validate password length
+    if (!validator.isLength(password, { min: 3 })) {
+        return res.status(400).json({ message: 'Password must be at least 3 characters long' });
+    }
+
+    // Validate CSRF token
+    if (!csrfToken || csrfToken !== sessionCsrfToken) {
+        return res.status(403).json({ message: 'Invalid CSRF token' });
     }
 
     try {
@@ -31,19 +50,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const hashedPassword = bcrypt.hashSync(password, salt);
 
         // Create the user with the username
-        const user = await prisma.user.create({
+        await prisma.user.create({
             data: {
                 email,
-                username, // Include the username here
+                username,
                 password: hashedPassword,
-                isAdmin: true, // Default to false, adjust based on your needs
+                isAdmin: false, // Change to true if necessary
             },
         });
 
-        // Respond with the created user (excluding the password)
-        return res.status(201).json({ email: user.email, username: user.username, isAdmin: user.isAdmin });
+        // Respond with success (do not send back sensitive information)
+        return res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
-        console.error('Request error', error);
-        return res.status(500).json({ error: 'Error creating user', message: error.message });
+        console.error('Registration error:', error);
+        return res.status(500).json({ message: 'Something went wrong' });
     }
 }

@@ -1,5 +1,6 @@
 // pages/change-password.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { GetServerSideProps } from 'next';
 import { parseCookies } from 'nookies';
 import jwt from 'jsonwebtoken';
@@ -9,8 +10,22 @@ const ChangePassword = () => {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [csrfToken, setCsrfToken] = useState('');
     const [error, setError] = useState('');
     const router = useRouter();
+
+    useEffect(() => {
+        // Fetch the CSRF token when the component mounts
+        const fetchCsrfToken = async () => {
+            try {
+                const { data } = await axios.get('/api/csrf-token');
+                setCsrfToken(data.csrfToken);
+            } catch (error) {
+                console.error('Error fetching CSRF token:', error);
+            }
+        };
+        fetchCsrfToken();
+    }, []);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -32,7 +47,7 @@ const ChangePassword = () => {
             const res = await fetch('/api/auth/change-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ currentPassword, newPassword }),
+                body: JSON.stringify({ currentPassword, newPassword, csrfToken }), // Include csrfToken here
             });
 
             const data = await res.json();

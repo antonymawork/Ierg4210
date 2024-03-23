@@ -1,6 +1,7 @@
 // pages/api/products/edit.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '../../../lib/prismaClient'; // Adjust the path as necessary
+import { parseCookies } from 'nookies';
 
 export default async function handler(
     req: NextApiRequest,
@@ -8,13 +9,19 @@ export default async function handler(
 ) {
     if (req.method === 'POST') {
         // console.log(req.body)
-        const { productID, categoryID, productPrice, productInventory, productDescription} = req.body;
-        
-        console.log(productID)
-        console.log(parseInt(categoryID))
-        console.log(parseFloat(productPrice))
-        console.log(parseInt(productInventory))
-        console.log(productDescription)
+        const { csrfToken, productID, categoryID, productPrice, productInventory, productDescription} = req.body;
+        const cookies = parseCookies({ req });
+        const storedCsrfToken = cookies['csrfToken'];
+
+        // CSRF token validation
+        if (!csrfToken || csrfToken !== storedCsrfToken) {
+            return res.status(403).json({ message: 'Invalid CSRF token.' });
+        }
+        // console.log(productID)
+        // console.log(parseInt(categoryID))
+        // console.log(parseFloat(productPrice))
+        // console.log(parseInt(productInventory))
+        // console.log(productDescription)
 
         try {
             const updatedProduct = await prisma.product.update({

@@ -1,16 +1,18 @@
-// pages/login.tsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import { parseCookies } from 'nookies';
 import jwt from 'jsonwebtoken';
 import Link from 'next/link';
+import validator from 'validator'; // Make sure to install 'validator'
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [csrfToken, setCsrfToken] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -24,7 +26,28 @@ const LoginPage = () => {
 
   const handleLogin = async (event) => {
     event.preventDefault();
+
+    // Reset error messages
     setErrorMsg('');
+    setEmailError('');
+    setPasswordError('');
+
+    // Client-side validation
+    let isValid = true;
+    if (!email) {
+      setEmailError('Email is required');
+      isValid = false;
+    } else if (!validator.isEmail(email)) {
+      setEmailError('Invalid email format');
+      isValid = false;
+    }
+
+    if (!password) {
+      setPasswordError('Password is required');
+      isValid = false;
+    }
+
+    if (!isValid) return; // Stop the submission if validation fails
 
     try {
       const response = await axios.post('/api/auth/login', { email, password, csrfToken });
@@ -54,6 +77,7 @@ const LoginPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          {emailError && <p className="text-red-500 text-sm mt-2">{emailError}</p>}
         </div>
         <div className="mt-4">
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password:</label>
@@ -64,53 +88,23 @@ const LoginPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          {passwordError && <p className="text-red-500 text-sm mt-2">{passwordError}</p>}
         </div>
         {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
+        <div className="mt-6 mb-4 text-gray-700">
+          Test accounts:<br/>
+          Admin: 123@gmail.com, PW: 123<br/>
+          User: 234@gmail.com, PW: 234
+        </div>
         <div className="mt-6 mb-4">
           <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             Log In
           </button>
         </div>
-        <Link legacyBehavior href="/register" ><a className='text-gray-700 text-md text-center'>No account yet?</a></Link>
+        <Link legacyBehavior href="/register"><a className='text-gray-700 text-md text-center'>No account yet?</a></Link>
       </form>
     </div>
   );
-};
-
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const cookies = parseCookies(ctx);
-  const token = cookies.auth;
-
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      // Redirect based on the user's role
-      if (decoded.isAdmin) {
-        return {
-          redirect: {
-            destination: '/admin',
-            permanent: false,
-          },
-        };
-      } else {
-        return {
-          redirect: {
-            destination: '/',
-            permanent: false,
-          },
-        };
-      }
-    } catch (error) {
-        return {
-            redirect: {
-              destination: '/',
-              permanent: false,
-            },
-          };    
-    }
-  }
-
-  return { props: {} };
 };
 
 export default LoginPage;

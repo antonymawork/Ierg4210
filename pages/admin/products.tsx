@@ -3,7 +3,8 @@
   import { faTimes, faFileUpload, faPhotoVideo } from "@fortawesome/free-solid-svg-icons";
   import DragDropFileUpload from '../../components/admin/DragDropFileUpload';
   import Image from 'next/image';
-
+  import axios from 'axios';
+  import validator from 'validator';
 
   export default function Products() {
     const [showAddForm, setShowAddForm] = useState(false);
@@ -11,6 +12,7 @@
     const [showEditForm, setShowEditForm] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
+    const [csrfToken, setCsrfToken] = useState('');
 
     const [selectedFile, setSelectedFile] = useState(null); // To store the selected file
 
@@ -54,7 +56,18 @@
       }
     };
     
-    
+    useEffect(() => {
+      const fetchCsrfToken = async () => {
+        try {
+          const { data } = await axios.get('/api/csrf-token');
+          setCsrfToken(data.csrfToken); // Assume you have a state variable for this
+        } catch (error) {
+          console.error('Error fetching CSRF token:', error);
+        }
+      };
+      fetchCsrfToken();
+    }, []);
+
     useEffect(() => {
       // Fetch categories from the API and set state
       fetch('/api/categories')
@@ -88,6 +101,33 @@
 
       const formData = new FormData(event.target); // Assuming 'event.target' is your form
 
+       // Extract form data
+      const productName = formData.get('productName').toString();
+      const categoryID = formData.get('categoryID').toString();
+      const productPrice = formData.get('productPrice').toString();
+      const productInventory = formData.get('productInventory').toString();
+
+      // Client-side validation checks
+      if (validator.isEmpty(productName)) {
+        alert('Product name cannot be empty');
+        return;
+      }
+
+      if (!validator.isNumeric(categoryID) || validator.isEmpty(categoryID)) {
+        alert('Please select a valid category');
+        return;
+      }
+
+      if (!validator.isDecimal(productPrice, { decimal_digits: '0,2' })) {
+        alert('Please enter a valid price');
+        return;
+      }
+
+      if (!validator.isInt(productInventory, { min: 0 })) {
+        alert('Inventory must be a non-negative integer');
+        return;
+      }
+
       if (selectedFile) {
         // Check if formData already has an 'Image' field
         if (formData.has('Image')) {
@@ -97,6 +137,8 @@
       }
       formData.append('Image', selectedFile);
       
+      formData.append('csrfToken', csrfToken); 
+
       try {
         const response = await fetch('/api/products/add', { // Adjust the URL to match your API route
           method: 'POST',
@@ -123,13 +165,24 @@
     
       const productID = event.target.elements.productID.value; // Assuming your select name is 'productID'
     
+      // Client-side validation checks
+      if (validator.isEmpty(productID)) {
+        alert('Please select a product to delete.');
+        return;
+      }
+
+      // Additional validation to ensure productID is a numeric value
+      if (!validator.isNumeric(productID)) {
+        alert('Invalid product selected.');
+        return;
+      }
       try {
         const response = await fetch('/api/products/delete', {
           method: 'POST', // Using POST for simplicity, but ideally should be DELETE with body or use query parameters
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ productID }), // Send the product ID to delete
+          body: JSON.stringify({ productID, csrfToken }), // Send the product ID to delete
         });
     
         if (!response.ok) throw new Error('Problem deleting product');
@@ -147,13 +200,34 @@
     const handleEditProductSubmit = async (event) => {
       event.preventDefault();
     
-      const formData = new FormData();
-      formData.append('productID', event.target.productID.value);
-      formData.append('categoryID', event.target.categoryID.value);
-      formData.append('productPrice', event.target.productPrice.value);
-      formData.append('productInventory', event.target.productInventory.value);
-      formData.append('productDescription', event.target.productDescription.value);
-    
+      const formData = new FormData(event.currentTarget); // Assuming 'event.currentTarget' is your form
+      const productName = formData.get('productName');
+      const categoryID = formData.get('categoryID');
+      const productPrice = formData.get('productPrice');
+      const productInventory = formData.get('productInventory');
+      const productDescription = formData.get('productDescription');
+      
+     // Client-side validations
+      let errorMessage = '';
+      if (!validator.isNumeric(categoryID ? categoryID.toString() : '')) {
+      errorMessage = 'Invalid category selected.';
+      } else if (!validator.isDecimal(productPrice ? productPrice.toString() : '', { decimal_digits: '0,2' })) {
+      errorMessage = 'Invalid product price format.';
+      } else if (!validator.isInt(productInventory ? productInventory.toString() : '', { min: 0 })) {
+      errorMessage = 'Invalid product inventory.';
+      } else if (!validator.isLength(productDescription ? productDescription.toString() : '', { min: 1 })) {
+      errorMessage = 'Product description cannot be empty.';
+      }
+
+
+
+      if (errorMessage) {
+          alert(errorMessage); // Show the error message
+          return; // Stop the function execution
+      }
+
+      formData.append('csrfToken', csrfToken);
+
       try {
         const response = await fetch('/api/products/edit', {
           method: 'POST',

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faFileUpload } from "@fortawesome/free-solid-svg-icons";
 import DragDropFileUpload from '../../components/admin/DragDropFileUpload';
 import Image from 'next/image';
+import axios from 'axios';
 
 
 export default function Categories() {
@@ -10,10 +11,25 @@ export default function Categories() {
   const [showDeleteForm, setShowDeleteForm] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [csrfToken, setCsrfToken] = useState('');
 
   useEffect(() => {
     fetchCategories(); // Fetch categories on component mount
   }, []);
+
+  useEffect(() => {
+    // Fetch the CSRF token when the component mounts
+    const fetchCsrfToken = async () => {
+        try {
+            const { data } = await axios.get('/api/csrf-token');
+            setCsrfToken(data.csrfToken);
+        } catch (error) {
+            console.error('Error fetching CSRF token:', error);
+        }
+    };
+    fetchCsrfToken();
+}, []);
+
 
   const fetchCategories = () => {
     fetch('/api/categories')
@@ -49,6 +65,14 @@ export default function Categories() {
     }
     formData.append('Image', selectedFile);
 
+    // Client-side validation example
+    if (!formData.get('categoryName').trim()) {
+      alert('Category name is required');
+      return;
+    }
+
+    formData.append('csrfToken', csrfToken); // Append CSRF token to the form data
+
     try {
       const response = await fetch('/api/categories/add', { // Adjust the URL to match your API route
         method: 'POST',
@@ -73,13 +97,18 @@ export default function Categories() {
   
     const categoryID = event.target.elements.categoryID.value; // Assuming your select name is 'categoryID'
   
+    if (!categoryID) {
+      alert('Please select a category to delete');
+      return;
+    }
+
     try {
       const response = await fetch('/api/categories/delete', {
         method: 'POST', // Using POST for simplicity, but ideally should be DELETE with body or use query parameters
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ categoryID }), // Send the category ID to delete
+        body: JSON.stringify({ categoryID, csrfToken }), // Send the category ID to delete
       });
   
       if (!response.ok) throw new Error('Problem deleting category');

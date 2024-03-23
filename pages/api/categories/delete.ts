@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '../../../lib/prismaClient'; // Adjust the import path as necessary
+import { parseCookies } from 'nookies';
 
 export default async function handler(
   req: NextApiRequest,
@@ -7,7 +8,14 @@ export default async function handler(
 ) {
   if (req.method === 'POST') {
     // console.log(req.body)
-    const { categoryID } = req.body;
+    const { categoryID, csrfToken } = req.body;
+    const cookies = parseCookies({ req });
+    const storedCsrfToken = cookies['csrfToken'];
+
+    // CSRF token validation
+    if (!csrfToken || csrfToken !== storedCsrfToken) {
+        return res.status(403).json({ message: 'Invalid CSRF token.' });
+    }
 
     try {
       // Assuming 'category' is the name of the field in your database

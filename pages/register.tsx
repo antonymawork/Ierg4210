@@ -1,26 +1,44 @@
-// pages/register.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState(''); // Add this line
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [csrfToken, setCsrfToken] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
+  useEffect(() => {
+    // Fetch the CSRF token
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get('/api/csrf-token');
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error('Error fetching CSRF token:', error);
+      }
+    };
+    fetchCsrfToken();
+  }, []);
+
   const handleRegister = async (event) => {
     event.preventDefault();
-    setErrorMsg(''); // Clear previous error messages
+    setErrorMsg('');
+
+    // Client-side validation example
+    if (!email.trim() || !username.trim() || !password.trim()) {
+      setErrorMsg('All fields are required.');
+      return;
+    }
 
     try {
-      await axios.post('/api/auth/register', { email, username, password }); // Include username in the request
-      // Redirect to login page or wherever you prefer after successful registration
+      await axios.post('/api/auth/register', { email, username, password, csrfToken });
       router.push('/login');
     } catch (error) {
-      setErrorMsg(error.response.data.message || 'An error occurred during registration.');
+      setErrorMsg(error.response?.data?.message || 'An error occurred during registration.');
     }
   };
 
@@ -28,6 +46,7 @@ const RegisterPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <form onSubmit={handleRegister} className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
         <h2 className="text-2xl font-semibold text-center text-gray-700 mb-8">Register</h2>
+        <input type="hidden" name="csrfToken" value={csrfToken} />
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email:</label>
           <input
@@ -39,7 +58,7 @@ const RegisterPage = () => {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div className="mt-4"> {/* Add this block */}
+        <div className="mt-4">
           <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username:</label>
           <input
             type="text"
@@ -67,7 +86,7 @@ const RegisterPage = () => {
             Register
           </button>
         </div>
-        <Link legacyBehavior href="/login" ><a className='text-gray-700 text-md text-center'>Already have an account?</a></Link>
+        <Link legacyBehavior href="/login"><a className='text-gray-700 text-md text-center'>Already have an account?</a></Link>
       </form>
     </div>
   );

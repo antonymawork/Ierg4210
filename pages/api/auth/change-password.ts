@@ -10,6 +10,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
+  // Extract CSRF token from the cookies
+  const { csrfToken } = req.cookies;
+
+  // Validate CSRF token
+  if (!csrfToken || csrfToken !== req.body.csrfToken) {
+      return res.status(403).json({ message: 'Invalid CSRF token' });
+  }
+
   const { currentPassword, newPassword } = req.body;
 
   // Validate the inputs
