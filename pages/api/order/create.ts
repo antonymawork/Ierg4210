@@ -1,24 +1,74 @@
-// pages/api/order/create.js
+// pages/api/order/create.ts
 import prisma from '../../../lib/prismaClient';
+import { v4 as uuidv4 } from 'uuid';
+import { createHmac } from 'crypto';
+import jwt from 'jsonwebtoken';
+import { parse } from 'cookie';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { items } = req.body; // Your front end should send an array of items
-    // Implement your logic to calculate the total price based on items
-    // For simplicity, let's assume each item has 'price' and 'quantity'
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
 
-    const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    const order = await prisma.order.create({
-      data: {
-        total,
-        items: { createMany: { data: items } }, // Adjust based on your Prisma schema
-        status: 'CREATED', // You might have different statuses
-      },
-    });
+    try {
+        const cookies = parse(req.headers.cookie || '');
+        const token = cookies.auth;
+        if (!token) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
 
-    res.status(201).json({ id: order.id, total, items });
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        
+        const userId = decoded.userId; // Note: use the exact key you used when signing the JWT
+        if (!userId) {
+            throw new Error('User ID not found in token');
+        }
+
+        console.log('Authenticated user ID:', userId);
+
+        const { items } = req.body;
+        if (!items || items.length === 0) {
+            return res.status(400).json({ error: 'No items provided' });
+        }
+
+        const merchantEmail = "1155170608@link.cuhk.edu.hk";
+        const currency = "HKD";
+        let dataString = items.map(item => `${item.name}:${item.quantity}`).join('|');
+        
+        const pricesFromDB = await Promise.all(items.map(async item => {
+            const product = await prisma.product.findUnique({ where: { productID: item.productId } });
+            if (!product) {
+                throw new Error(`Product not found: ${item.name}`);
+            }
+            return product.productPrice;
+        }));
+
+        const total = pricesFromDB.reduce((acc, price, idx) => acc + (price * items[idx].quantity), 0).toFixed(2);
+        dataString += '|' + pricesFromDB.join('|') + `|${total}|${currency}|${merchantEmail}`;
+        const digest = createHmac('sha256', 'your-secret-key').update(dataString).digest('hex');
+        const invoiceId = uuidv4();
+
+        const newOrder = await prisma.order.create({
+            data: {
+                id: uuidv4(),
+                userId: userId, // Ensure this matches your Prisma schema
+                invoice_id: invoiceId,
+                custom_id: digest,
+                amount: `${total} ${currency}`,
+                status: 'CREATED',
+                items: JSON.stringify(items.map((item, idx) => ({ ...item, price: pricesFromDB[idx] }))),
+            },
+        });
+
+        return res.status(201).json(newOrder);
+    } catch (error) {
+        console.error('Order creation failed:', error);
+        return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
 }

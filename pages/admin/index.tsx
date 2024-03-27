@@ -6,6 +6,7 @@ import Header from '../../components/admin/Header';
 import Sidebar from '../../components/admin/Sidebar';
 import Products from './products';
 import Categories from './categories';
+import Orders from './orders';
 
 export default function Admin({ user }) { // Here, receive user prop
   const [activeTab, setActiveTab] = useState('Products');
@@ -18,6 +19,7 @@ export default function Admin({ user }) { // Here, receive user prop
         <div className="flex-1 p-10">
           {activeTab === 'Products' && <Products />}
           {activeTab === 'Categories' && <Categories />}
+          {activeTab === 'Orders' && <Orders />}
         </div>
       </div>
     </div>

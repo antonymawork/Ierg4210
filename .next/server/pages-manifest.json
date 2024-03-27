@@ -1,8 +1,22 @@
 {
   "/_app": "pages/_app.js",
-  "/_document": "pages/_document.js",
   "/_error": "pages/_error.js",
-  "/api/products/byCategory": "pages/api/products/byCategory.js",
+  "/_document": "pages/_document.js",
+  "/": "pages/index.js",
+  "/login": "pages/login.js",
+  "/api/csrf-token": "pages/api/csrf-token.js",
+  "/admin": "pages/admin.js",
+  "/api/order/admin-list": "pages/api/order/admin-list.js",
+  "/api/products": "pages/api/products.js",
+  "/api/categories": "pages/api/categories.js",
   "/categories/[category]": "pages/categories/[category].js",
-  "/api/order/create": "pages/api/order/create.js"
+  "/api/products/byCategory": "pages/api/products/byCategory.js",
+  "/api/auth/login": "pages/api/auth/login.js",
+  "/api/order/create": "pages/api/order/create.js",
+  "/categories/[category]/[product]": "pages/categories/[category]/[product].js",
+  "/api/order/cancel": "pages/api/order/cancel.js",
+  "/api/products/[product]": "pages/api/products/[product].js",
+  "/orders": "pages/orders.js",
+  "/api/order/complete/[orderId]": "pages/api/order/complete/[orderId].js",
+  "/api/order/list": "pages/api/order/list.js"
 }

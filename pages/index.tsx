@@ -53,6 +53,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       // Make sure to set default values if properties are undefined
       user = {
+        id: decoded.userId,
         isAdmin: decoded.isAdmin || false, // Default to false if undefined
         username: decoded.username || 'Guest', // Default to 'Guest' if undefined
       };

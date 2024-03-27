@@ -424,7 +424,7 @@
             </div>
           </div>
         )}
-        <div className="overflow-x-auto mt-6 rounded-lg">
+        <div className="overflow-x-auto mt-6 rounded-lg shadow-md">
           <table className="min-w-full table-auto">
             <thead className="bg-slate-700 text-white">
               <tr>
