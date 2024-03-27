@@ -1,14 +1,8 @@
 {
   "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/admin": "pages/admin.js",
-  "/api/csrf-token": "pages/api/csrf-token.js",
-  "/": "pages/index.js",
-  "/login": "pages/login.js",
-  "/api/categories": "pages/api/categories.js",
-  "/api/products": "pages/api/products.js",
-  "/api/auth/login": "pages/api/auth/login.js",
-  "/api/auth/logout": "pages/api/auth/logout.js",
-  "/register": "pages/register.js"
+  "/_error": "pages/_error.js",
+  "/api/products/byCategory": "pages/api/products/byCategory.js",
+  "/categories/[category]": "pages/categories/[category].js",
+  "/api/order/create": "pages/api/order/create.js"
 }

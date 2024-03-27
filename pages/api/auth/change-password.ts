@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     maxAge: -1,
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,//process.env.NODE_ENV === 'production',
   }));
 
   return res.status(200).json({ message: 'Password changed successfully. Please log in with your new password.' });

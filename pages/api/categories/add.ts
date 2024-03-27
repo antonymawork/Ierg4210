@@ -1,11 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import multer, { Multer } from 'multer';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../lib/prismaClient';
 import { slugify } from '../../../lib/slugify'; // Ensure you have slugify installed: npm install slugify
 import path from 'path';
 import { parseCookies } from 'nookies';
-
-const prisma = new PrismaClient();
 
 // Assuming you have a function to handle file uploads
 function handleFileUpload(file: Express.Multer.File, categorySlug: string): string {

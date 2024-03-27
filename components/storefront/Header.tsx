@@ -4,10 +4,31 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart, faUser } from '@fortawesome/free-solid-svg-icons';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { PayPalButton } from "react-paypal-button-v2";
 
 const Header = ({ user }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [isPayPalReady, setIsPayPalReady] = useState(false); // New state to track PayPal SDK readiness
+  const [transactionCompleted, setTransactionCompleted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    loadCartItems();
+    // PayPal SDK script loading
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=${process.env.NEXT_PUBLIC_PAYPAL_CURRENCY}`;    
+    script.type = 'text/javascript';
+    script.onload = () => {
+      console.log('PayPal SDK has loaded.'); 
+      setIsPayPalReady(true); // Set PayPal SDK to ready when the script has loaded
+    };
+    document.body.appendChild(script);
+
+    return () => {
+        // Cleanup the script when the component unmounts
+        document.body.removeChild(script);
+    };
+  }, []);
 
   useEffect(() => {
     loadCartItems();
@@ -51,6 +72,83 @@ const Header = ({ user }) => {
     }
   };
 
+  const createOrder = (data, actions) => {
+    return fetch('/api/order/create', { // Assuming you have this endpoint set up
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ items: cartItems }), // Send cart items to the server
+    })
+      .then(res => res.json())
+      .then(order => {
+        // The server should return the order ID and details
+        return actions.order.create({
+          purchase_units: [
+            {
+              reference_id: order.id, // Use the order ID from your server
+              description: "Your Store Purchase", // Customize as needed
+              amount: {
+                currency_code: "HKD",
+                value: order.total, // Use the total from your server
+                breakdown: {
+                  item_total: {
+                    currency_code: "HKD",
+                    value: order.total, // Repeat the total as item total
+                  },
+                },
+              },
+              items: order.items, // Include item details from the server
+            },
+          ],
+        });
+      });
+  };
+
+  // Function called when the payment has been successfully completed
+  const onApprove = (data, actions) => {
+    return actions.order.capture().then(details => {
+      console.log('Payment successful:', details);
+      
+      // Here you should inform your server about the successful payment
+      // For example, you might update the order status in your database
+      fetch(`/api/order/complete/${details.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderID: data.orderID,
+          details: details,
+        }),
+      });
+
+      clearCartAfterPayment();
+    });
+  };
+
+  // Function called when the payment is cancelled
+  const onCancel = (data) => {
+    console.log('Payment cancelled:', data);
+    // Inform your server about the cancelled payment if necessary
+    fetch('/api/order/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        orderID: data.orderID,
+      }),
+    });
+  };
+
+  const clearCartAfterPayment = () => {
+    localStorage.setItem('shoppingCart', JSON.stringify([]));
+    setCartItems([]);
+    setTransactionCompleted(true); // Indicate that transaction has been completed
+    setTimeout(() => setTransactionCompleted(false), 5000); // Reset after a delay
+  };
+
   return (
     <header className="flex justify-between items-center bg-slate-800 p-4 text-white">
       <Link href="/" legacyBehavior><a className="text-3xl font-semibold">Antony Ecommerce Store</a></Link>
@@ -76,7 +174,21 @@ const Header = ({ user }) => {
               </div>
             ))}
             <div className="mt-2 text-xl font-bold">Total: ${cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2)}</div> {/* Added margin-top for gap */}
-            <button className="transition hover:scale-105 mt-2 bg-slate-700 text-white p-2 font-bold rounded-lg">Check Out</button>
+            {isPayPalReady && cartItems.length > 0 && !transactionCompleted && (
+              <PayPalButton
+                amount={cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2)}
+                createOrder={(data, actions) => createOrder(data, actions)}
+                onApprove={(data, actions) => onApprove(data, actions)}
+                onCancel={(data) => onCancel(data)}
+                options={{
+                  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID,
+                  currency: "HKD",
+                  buyerCountry: 'HK'
+                }}
+                key={new Date().getTime()} // Force re-render the PayPal button on every transaction
+              />
+            )}
+            {/* <button className="transition hover:scale-105 mt-2 bg-slate-700 text-white p-2 font-bold rounded-lg">Check Out</button> */}
           </div>
         </div>
         {!user ? (

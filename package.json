@@ -26,6 +26,7 @@
     "nookies": "^2.5.2",
     "react": "^18",
     "react-dom": "^18",
+    "react-paypal-button-v2": "^2.6.3",
     "sharp": "^0.33.2",
     "tailwindcss-filters": "^3.0.0",
     "trace": "^3.1.1",
