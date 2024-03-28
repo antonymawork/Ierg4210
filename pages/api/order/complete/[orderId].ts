@@ -1,42 +1,48 @@
 // pages/api/order/complete/[orderId].ts
 import prisma from '../../../../lib/prismaClient';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    // Only allow POST requests
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { orderId } = req.query; // Get the orderId from URL parameters
-  console.log("Attempting to complete order with ID:", orderId);
-
-  if (!orderId) {
-    return res.status(400).json({ error: 'Order ID must be provided' });
-  }
+  const { orderId } = req.query;
+  const { paypalOrderID, items, currency_code, value } = req.body;
 
   try {
-    // Fetch the existing order to ensure it exists
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: String(orderId) },
-    });
+    // Generate orderDetails based on the items and other data received
+    const orderDetails = {
+      purchase_units: [{
+        amount: {
+          currency_code,
+          value,
+          breakdown: {
+            item_total: {
+              currency_code,
+              value
+            }
+          }
+        },
+        items: items.map(item => ({
+          name: item.name,
+          unit_amount: item.unit_amount,
+          quantity: item.quantity.toString(),
+        })),
+        custom_id: "", // Assign appropriately if needed
+        invoice_id: orderId, // This could be the PayPal order ID or your internal order ID
+      }]
+    };
 
-    if (!existingOrder) {
-      console.log(`Order with ID ${orderId} not found`);
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    // Update the order to mark it as completed
     const updatedOrder = await prisma.order.update({
       where: { id: String(orderId) },
       data: {
         status: 'COMPLETED',
-        // Include additional fields here as needed
-        orderDetails: JSON.stringify(req.body.orderDetails),
+        orderDetails: JSON.stringify(orderDetails),
       },
     });
 
-    console.log('Order completed successfully:', updatedOrder);
     return res.status(200).json(updatedOrder);
   } catch (error) {
     console.error('Order completion failed:', error);

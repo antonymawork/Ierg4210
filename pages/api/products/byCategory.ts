@@ -4,7 +4,6 @@ import prisma from '../../../lib/prismaClient';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { category } = req.query;
-  console.log(category);
   if (!category) {
     return res.status(400).json({ message: 'Category is required' });
   }
@@ -20,7 +19,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         category: true, // This ensures the category data is included in the response
       },
     });
-    console.log(products); 
     res.status(200).json(products);
   } catch (error) {
     console.error(error); // Adjusted for better error handling

@@ -5,13 +5,11 @@ import jwt from 'jsonwebtoken';
 import { parseCookies } from 'nookies';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // Only allow GET requests
     if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
     try {
-        // Check if the user is authenticated and an admin
         const cookies = parseCookies({ req });
         const token = cookies.auth;
 
@@ -19,28 +17,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        // Verify token and check admin status
+        // Attempt to decode the token and check for admin privileges
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (!decoded.isAdmin) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        // Fetch orders from the database
+        // Fetch all orders from the database
         const orders = await prisma.order.findMany({
             include: {
-                // Assuming 'user' is the field that references the user related to the order
-                // Adjust according to your Prisma schema
-                user: true, 
-                // You can add more related models here if necessary, like order items
+                user: true, // Assumes there's a relation 'user' in your Prisma schema
             },
             orderBy: {
-                createdAt: 'desc', // Orders the orders by creation date, adjust as needed
+                createdAt: 'desc',
             },
         });
 
+        // No need to transform orders here since Prisma automatically parses JSON fields
         return res.status(200).json(orders);
     } catch (error) {
-        console.error('Request error', error);
-        res.status(500).json({ error: 'Error fetching orders', details: error.message });
+        // Catch and log any errors, including token verification failures
+        console.error('Admin request error', error);
+        return res.status(500).json({ error: 'Error fetching orders', details: error.message });
     }
 }

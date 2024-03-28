@@ -40,12 +40,9 @@ model Order {
   id           String   @id
   user         User     @relation(fields: [userId], references: [id])
   userId       Int
-  invoice_id   String   // Unique UUID for each order
-  custom_id    String   // Store the generated digest here
-  orderDetails String?  // JSON string of the order details, may be null if not approved
-  amount       String   // Combines total and currency, formatted as "100.00 USD"
+  digest       String
+  salt         String
+  orderDetails String  // JSON string of the order details
   status       String   @default("CREATED") // e.g., CREATED, COMPLETED, CANCELLED
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  items        String   // Store JSON as a stringified format
 }

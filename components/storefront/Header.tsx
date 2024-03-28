@@ -82,65 +82,91 @@ const Header = ({ user }) => {
 
   const createOrder = async (data, actions) => {
     try {
+      // Prepare the order data from cart items
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.productId, // Assuming each item has a 'productId' field
+          name: item.name, // Item name
+          quantity: item.quantity, // Quantity of the item
+          price: item.price.toString(), // Price per item; ensure this is a string if required by your backend
+        })),
+      };
+  
+      // Send the order data to your server to create a new order
       const response = await fetch('/api/order/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Ensure cookies are sent with the request
-        body: JSON.stringify({ items: cartItems }),
-      });      
+        credentials: 'include', // Ensure cookies are sent with the request if your authentication depends on them
+        body: JSON.stringify(orderData),
+      });
+  
       if (!response.ok) {
-        throw new Error(`Network response was not ok: ${response.statusText}`);
+        // If the server response is not OK, throw an error to be caught below
+        throw new Error(`Failed to create order: ${response.statusText}`);
       }
+  
+      // Extract the order ID from the response for the PayPal transaction
       const order = await response.json();
-      
-      // Update state for future use
-      console.log('order.id', order.id)
-      customOrderId.current = order.id;
-      console.log('customOrderId', customOrderId)
-
-      // But use 'order.id' directly for immediate actions
+      console.log('Order created with ID:', order.id);
+      customOrderId.current = order.id; // Store the order ID for use in later steps (e.g., onApprove)
+  
+      // Return a value expected by PayPal's createOrder method
       return actions.order.create({
         purchase_units: [{
-          reference_id: order.id,
-          description: "Your Store Purchase",
+          reference_id: order.id, // Use the server-generated order ID as reference
+          description: "Your Store Purchase", // Description for the purchase
           amount: {
-            currency_code: "HKD",
-            value: cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2),
+            currency_code: "HKD", // Currency code (ensure this matches your store's currency)
+            value: cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2), // Total amount
           }
         }],
       });
     } catch (error) {
-      console.error('Create order failed:', error);
-      // Optionally, inform the user that order creation failed
+      console.error('Create order failed:', error.message);
+      // Handle the error appropriately in your UI
     }
   };
+  
 
 
   // This function is triggered when the PayPal payment is approved
   const onApprove = async (data, actions) => {
+    const details = await actions.order.capture();
+    
+    // Confirm this matches the structure expected by your server
+    const bodyData = {
+        paypalOrderID: details.id,
+        items: cartItems.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit_amount: {
+                currency_code: "HKD",
+                value: item.price.toString(),
+            }
+        })),
+        currency_code: "HKD",
+        value: cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2),
+    };
 
-    try {
-        // Proceed with finalizing the order, using the updated customOrderId
-        const details = await actions.order.capture();
-        const response = await fetch(`/api/order/complete/${customOrderId.current}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paypalOrderID: details.id }),
-        });
+    console.log("Sending to server:", JSON.stringify(bodyData)); // For debugging, remove after
 
-        if (!response.ok) throw new Error(`Order completion failed: ${response.statusText}`);
+    const response = await fetch(`/api/order/complete/${customOrderId.current}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData),
+    });
 
-        const orderUpdateResponse = await response.json();
-        clearCartAfterPayment(); // Clear cart after successful payment and order update
-        customOrderId.current = '';
-        alert("Payment Approved")
+    if (!response.ok) throw new Error(`Order completion failed: ${response.statusText}`);
 
-    } catch (error) {
-        console.error('Order completion failed:', error);
-    }
-  };
+    const orderUpdateResponse = await response.json();
+    clearCartAfterPayment();
+    customOrderId.current = '';
+    alert("Payment Approved");
+    router.push('/orders');
+};
+
 
 
   const onCancel = (data) => {
@@ -221,9 +247,7 @@ const Header = ({ user }) => {
               />
             )}
             {!user && (
-              <div>
-                Please <Link legacyBehavior href="/login"><a>log in</a></Link> to checkout.
-              </div>
+              <Link legacyBehavior href="/login"><button className="transition hover:scale-105 mt-2 bg-slate-700 text-white p-2 font-bold rounded-lg">Login to Check Out</button></Link>
             )}
             {/* <button className="transition hover:scale-105 mt-2 bg-slate-700 text-white p-2 font-bold rounded-lg">Check Out</button> */}
           </div>

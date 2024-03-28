@@ -1,4 +1,3 @@
-// pages/orders.js
 import React, { useEffect, useState } from 'react';
 import fetch from 'isomorphic-unfetch';
 import Link from 'next/link';
@@ -26,19 +25,55 @@ const OrdersPage = () => {
         <div className="bg-white p-10 min-h-screen text-gray-700">
             <h1 className="text-3xl font-semibold text-gray-800 mb-8">Your Orders</h1>
             <div className="space-y-6">
-                {orders.map(order => (
-                    <div key={order.id} className="p-6 shadow-lg rounded-xl bg-gray-100">
-                        <h2 className="text-xl font-semibold mb-2">Order ID: {order.id}</h2>
-                        <p className="text-md mb-1"><span className="font-medium">Amount:</span> {order.amount}</p>
-                        <p className="text-md mb-4"><span className="font-medium">Status:</span> <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{order.status}</span></p>
-                        <div className="font-medium mb-2">Items:</div>
-                        <ul className="list-disc ml-5">
-                            {JSON.parse(order.items).map(item => (
-                                <li key={item.productId} className="mt-1">{item.name} x {item.quantity} @ {item.price} each</li>
-                            ))}
-                        </ul>
-                    </div>
-                ))}
+                {orders.map(order => {
+                    let content = null;
+                    // Check order status to decide on rendering
+                    if (["CANCELLED", "CREATED"].includes(order.status)) {
+                        content = <p>N/A</p>; // Or any other placeholder content
+                    } else {
+                        // Safely parse the orderDetails JSON string
+                        let orderDetailsParsed;
+                        try {
+                            orderDetailsParsed = JSON.parse(order.orderDetails);
+                            content = (
+                                <>
+                                    <ul className="list-disc ml-5">
+                                        {orderDetailsParsed.purchase_units.flatMap((pu, index) => (
+                                            pu.items.map(item => (
+                                                <li key={`${index}-${item.name}`} className="mt-2">
+                                                    {item.name} x {item.quantity} @ ${item.unit_amount.value} {item.unit_amount.currency_code}
+                                                </li>
+                                            ))
+                                        ))}
+                                    </ul>
+                                    <p className="text-md mt-4 mb-2">
+                                        <span className="font-medium">Total: $</span>
+                                        {orderDetailsParsed.purchase_units[0].amount.value}
+                                        <span> </span>
+                                        {orderDetailsParsed.purchase_units[0].amount.currency_code}
+                                    </p>
+                                </>
+                            );
+                        } catch (e) {
+                            console.error('Error parsing order details:', e);
+                            content = <p>Could not load order items.</p>;
+                        }
+                    }
+
+                    return (
+                        <div key={order.id} className="p-6 shadow-lg rounded-xl bg-gray-100">
+                            <h2 className="text-xl font-semibold mb-2">Order ID: {order.id}</h2>
+                            <p className="text-md mb-2">
+                                <span className="font-medium">Status: </span>
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    {order.status}
+                                </span>
+                            </p>
+                            <div className="font-medium mb-2">Items: </div>
+                            {content}
+                        </div>
+                    );
+                })}
             </div>
             <div className="mt-10">
                 <Link legacyBehavior href="/"><a className="text-blue-600 hover:text-blue-700 transition duration-150 ease-in-out">← Back to the homepage</a></Link>

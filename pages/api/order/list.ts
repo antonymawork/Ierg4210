@@ -1,9 +1,10 @@
-// pages/api/order/list.js
+// pages/api/order/list.ts
 import prisma from '../../../lib/prismaClient';
+import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { parse } from 'cookie';
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -30,7 +31,10 @@ export default async function handler(req, res) {
             }
         });
 
-        return res.status(200).json(orders);
+        return res.status(200).json(orders.map(order => ({
+            ...order,
+            items: order.items ? JSON.parse(order.items) : []
+        })));
     } catch (error) {
         console.error('Fetching orders failed:', error);
         return res.status(500).json({ error: 'Internal Server Error', details: error.message });

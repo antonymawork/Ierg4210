@@ -1,7 +1,7 @@
 // pages/api/order/create.ts
 import prisma from '../../../lib/prismaClient';
 import { v4 as uuidv4 } from 'uuid';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { parse } from 'cookie';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(401).json({ error: 'Invalid token' });
         }
         
-        const userId = decoded.userId; // Note: use the exact key you used when signing the JWT
+        const userId = decoded.userId;
         if (!userId) {
             throw new Error('User ID not found in token');
         }
@@ -39,6 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const merchantEmail = "1155170608@link.cuhk.edu.hk";
         const currency = "HKD";
+        const salt = randomBytes(16).toString('hex');
         let dataString = items.map(item => `${item.name}:${item.quantity}`).join('|');
         
         const pricesFromDB = await Promise.all(items.map(async item => {
@@ -50,19 +51,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }));
 
         const total = pricesFromDB.reduce((acc, price, idx) => acc + (price * items[idx].quantity), 0).toFixed(2);
-        dataString += '|' + pricesFromDB.join('|') + `|${total}|${currency}|${merchantEmail}`;
-        const digest = createHmac('sha256', 'your-secret-key').update(dataString).digest('hex');
+        dataString += '|' + pricesFromDB.join('|') + `|${total}|${currency}|${merchantEmail}|${salt}`;
+        const digest = createHmac('sha256', process.env.HMAC_SECRET).update(dataString).digest('hex');
         const invoiceId = uuidv4();
 
         const newOrder = await prisma.order.create({
             data: {
                 id: uuidv4(),
-                userId: userId, // Ensure this matches your Prisma schema
-                invoice_id: invoiceId,
-                custom_id: digest,
-                amount: `${total} ${currency}`,
+                userId: userId,
+                digest: digest,
+                salt: salt,
+                orderDetails: '', // Initially empty or suitable placeholder
                 status: 'CREATED',
-                items: JSON.stringify(items.map((item, idx) => ({ ...item, price: pricesFromDB[idx] }))),
+                createdAt: new Date(),
             },
         });
 
